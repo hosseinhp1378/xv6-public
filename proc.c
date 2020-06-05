@@ -500,6 +500,9 @@ kill(int pid)
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
+
+
+
 void
 procdump(void)
 {
@@ -530,5 +533,37 @@ procdump(void)
         cprintf(" %p", pc[i]);
     }
     cprintf("\n");
+  }
+}
+
+void getInfo(struct proc_info* infoArray ){
+
+  
+  acquire(&ptable.lock);
+  struct proc *p;
+  int index = 0 ;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == RUNNING || p->state == RUNNABLE){
+      (infoArray + index) -> memsize = p-> sz ;
+      (infoArray + index) -> pid = p-> pid;
+      index++;
+    }
+  }
+  
+  release(&ptable.lock);
+  struct proc_info tmp ;
+  for(int i=0;i<NPROC;i++)
+  {
+    for(int j=i+1;j<NPROC;++j) 
+    {
+      if ( (infoArray+i)->memsize < (infoArray+j)->memsize ){
+        tmp = *(infoArray+i);
+        *(infoArray+i) =  *(infoArray+j);
+        *(infoArray+j) = tmp ;
+      }
+    }
+    
+
   }
 }
