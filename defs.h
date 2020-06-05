@@ -1,3 +1,4 @@
+struct proc_info;
 struct buf;
 struct context;
 struct file;
@@ -120,6 +121,7 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void            getInfo(struct proc_info*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
