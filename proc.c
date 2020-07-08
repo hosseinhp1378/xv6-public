@@ -88,6 +88,10 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  //set the defaulte value for  priority 
+  p->priority = 60;
+  p->priorityLevel = 1;
+  p->ctime = ticks;
 
   release(&ptable.lock);
 
@@ -322,36 +326,92 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p = 0;
+
   struct cpu *c = mycpu();
   c->proc = 0;
-  
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
 
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+  for(;;)
+  {
+      // Enable interrupts on this processor.
+      sti();
+      int q1=0,q2=0,q3=0;
+      // Loop over process table looking for process to run.
+      acquire(&ptable.lock);
+       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+          if (p->priorityLevel == 1)
+          {
+            q1++;
+          }
+          if (p->priorityLevel == 2)
+          {
+            q2++;
+          }
+          if (p->priorityLevel == 3)
+          {
+            q3++;
+          }
+          
+       }
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+          if (q1!=0)
+          {
+              if(p->state != RUNNABLE || p->priorityLevel!=1)
+                continue;
+          }
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+          else if (q2!=0)
+          {
+            struct proc *minP = 0;
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
-    release(&ptable.lock);
+            if(p->state != RUNNABLE || p->priorityLevel!=2)
+              continue;
 
+            // ignore init and sh processes from FCFS
+            if(p->pid > 1)
+            {
+              if (minP != 0){
+                // here I find the process with the lowest creation time (the first one that was created)
+                if(p->ctime < minP->ctime)
+                  minP = p;
+              }
+              else
+                  minP = p;
+            }
+
+            // If I found the process which I created first and it is runnable I run it
+            //(in the real FCFS I should not check if it is runnable, but for testing purposes I have to make this control, otherwise every time I launch
+            // a process which does I/0 operation (every simple command) everything will be blocked
+            if(minP != 0 && minP->state == RUNNABLE)
+                p = minP;
+         
+          }
+          else{
+             if(p->state != RUNNABLE || p->priorityLevel!=3)
+                continue;
+          }
+          if(p != 0)
+          {
+
+            // Switch to chosen process.  It is the process's job
+            // to release ptable.lock and then reacquire it
+            // before jumping back to us.
+            c->proc = p;
+            switchuvm(p);
+            p->state = RUNNING;
+
+            swtch(&(c->scheduler), p->context);
+            switchkvm();
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+          }
+        }
+
+        release(&ptable.lock);
   }
 }
 
@@ -531,4 +591,29 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int set_priority(int priority){
+  int oldPriority=myproc()->priority;
+  myproc()->priority=priority;
+  yield();
+  return oldPriority;
+
+}
+
+
+
+int nice(void){
+
+  if (myproc()->priorityLevel<3)
+  {
+
+    myproc()->priorityLevel++;
+    yield();
+    return 0;
+  }
+  
+ else{
+   return -1;
+ }
 }
