@@ -89,3 +89,20 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_set_priority (void)
+{
+  int priority;
+  if(argptr(0, (char**)&priority,sizeof(int)) < 0)
+    return -1;
+
+  return set_priority(priority);
+}
+
+
+int
+sys_nice (void)
+{
+  return nice();
+}
