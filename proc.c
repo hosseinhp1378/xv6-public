@@ -89,6 +89,9 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  //set the defaulte value for  priority  part2
+  p->priority = 60;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -328,9 +331,12 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *p2; //part 2
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  struct proc *priorityP; // part 2
+
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -344,6 +350,17 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      //part 2 related codes
+      priorityP  = p;
+      // choose one with highest priority
+      for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){
+        if(p2->state != RUNNABLE)
+          continue;
+        if ( priorityP->priority > p2->priority )   // larger value, lower priority 
+          priorityP = p2;
+      }
+      p = priorityP;
+      // end part 2
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -537,6 +554,16 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+//part 2
+int set_priority(int priority){
+  int oldPriority=myproc()->priority;
+  myproc()->priority=priority;
+  yield();
+  return oldPriority;
+
+}
+//end part 2
 
 int
 waitx(int *wtime,int *rtime)
