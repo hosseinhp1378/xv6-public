@@ -181,7 +181,10 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-
+	_schedulerTest\
+	_tester\
+	_test2\
+	
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
 
